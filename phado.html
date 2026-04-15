@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sơ Đồ Gia Phả - Gia Phả Dòng Họ</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Panzoom Library for interactivity -->
+    <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body class="phado-page">
+    <div class="app-container">
+        <!-- Desktop Sidebar -->
+        <aside class="sidebar" id="desktop-sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="ph-fill ph-tree-evergreen logo-icon"></i>
+                    <span class="logo-text">Gia Phả</span>
+                </div>
+                <button class="toggle-btn" id="sidebar-toggle" title="Thu gọn/Mở rộng">
+                    <i class="ph ph-caret-left"></i>
+                </button>
+            </div>
+            
+            <ul class="nav-links">
+                <li>
+                    <a href="index.html" title="Trang chủ">
+                        <i class="ph ph-house"></i>
+                        <span class="link-name">Trang chủ</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="Lịch sử dòng họ">
+                        <i class="ph ph-book-open-text"></i>
+                        <span class="link-name">Lịch sử dòng họ</span>
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="phado.html" title="Phả đồ dòng họ">
+                        <i class="ph-fill ph-git-merge"></i>
+                        <span class="link-name">Phả đồ dòng họ</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="Tư liệu">
+                        <i class="ph ph-image"></i>
+                        <span class="link-name">Tư liệu</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="Tìm kiếm">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <span class="link-name">Tìm kiếm</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="Thống kê">
+                        <i class="ph ph-chart-bar"></i>
+                        <span class="link-name">Thống kê</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="Quản lý tài khoản">
+                        <i class="ph ph-user-gear"></i>
+                        <span class="link-name">Quản lý tài khoản</span>
+                    </a>
+                </li>
+            </ul>
+
+            <ul class="nav-links bottom-links">
+                <li>
+                    <a href="#" id="save-online-btn" title="Lưu thay đổi lên Web (GitHub)" style="color:var(--primary); font-weight:600;">
+                        <i class="ph-fill ph-cloud-arrow-up"></i>
+                        <span class="link-name">Lưu lên Web</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="export-data-btn" title="Xuất dữ liệu JSON">
+                        <i class="ph ph-download-simple"></i>
+                        <span class="link-name">Xuất dữ liệu</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="import-data-btn" title="Nhập dữ liệu JSON">
+                        <i class="ph ph-upload-simple"></i>
+                        <span class="link-name">Nhập dữ liệu</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="Đăng nhập / Đăng xuất">
+                        <i class="ph ph-sign-out"></i>
+                        <span class="link-name">Đăng xuất</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content: Full Screen Canvas for Family Tree -->
+        <main class="main-content tree-viewport-wrapper">
+            <!-- Floating Controls -->
+            <div class="tree-controls glass-card">
+                <button class="control-btn" id="zoom-in" title="Phóng to"><i class="ph-bold ph-plus"></i></button>
+                <div class="divider"></div>
+                <button class="control-btn" id="zoom-out" title="Thu nhỏ"><i class="ph-bold ph-minus"></i></button>
+                <div class="divider"></div>
+                <button class="control-btn" id="zoom-reset" title="Tự động căn chỉnh gốc"><i class="ph-bold ph-corners-out"></i></button>
+                <div class="divider"></div>
+                <button class="control-btn" id="open-settings" title="Cài đặt hiển thị"><i class="ph-bold ph-gear"></i></button>
+            </div>
+
+            <!-- Header Title over tree -->
+            <div class="tree-header glass-card">
+                <h2>Phả Đồ Nguyễn Tộc</h2>
+                <p>Nắm giữ kéo thả để di chuyển, lăn chuột để thu phóng.</p>
+            </div>
+
+            <!-- Panzoom Container -->
+            <div id="tree-canvas">
+                <div class="tree-container">
+                    <!-- Generation Axis for depth labels -->
+                    <div class="gen-axis" id="gen-axis"></div>
+                    
+                    <!-- Tree Root (Đời 1) -->
+                    <!-- Tree Root will be populated dynamically -->
+                    <div id="tree-mount-point"></div>
+                </div>
+            </div>
+                </div>
+            </div>
+            
+        </main>
+
+        <!-- Mobile Bottom Nav -->
+        <nav class="mobile-nav" id="mobile-nav">
+            <a href="index.html" class="nav-item">
+                <i class="ph ph-house"></i>
+                <span>Trang chủ</span>
+            </a>
+            <div class="nav-item">
+                <i class="ph ph-book-open-text"></i>
+                <span>Lịch sử</span>
+            </div>
+            
+            <!-- Prominent Center Button (Active for Phả Đồ) -->
+            <a href="phado.html" class="nav-item center-btn-wrapper active">
+                <div class="center-btn">
+                    <i class="ph-fill ph-git-merge"></i>
+                </div>
+                <span>Phả đồ</span>
+            </a>
+            
+            <div class="nav-item" id="mobile-functions-trigger">
+                <i class="ph ph-grid-four"></i>
+                <span>Chức năng</span>
+            </div>
+            <div class="nav-item">
+                <i class="ph ph-user"></i>
+                <span>Tài khoản</span>
+            </div>
+        </nav>
+
+        <!-- Mobile Functions Popup Menu (Same as index) -->
+        <div class="mobile-popup-overlay" id="functions-popup">
+            <div class="mobile-popup-content">
+                ... (Populated dynamically or static based on app.js needs, keep static here)
+                <div class="popup-header">
+                    <h3>Chức năng mở rộng</h3>
+                    <button class="close-popup" id="close-functions"><i class="ph-bold ph-x"></i></button>
+                </div>
+                <div class="popup-grid">
+                    <div class="popup-item">
+                        <div class="icon-wrapper bg-blue"><i class="ph ph-magnifying-glass"></i></div>
+                        <span>Tìm kiếm</span>
+                    </div>
+                    <div class="popup-item">
+                        <div class="icon-wrapper bg-purple"><i class="ph ph-chart-bar"></i></div>
+                        <span>Thống kê</span>
+                    </div>
+                    <div class="popup-item">
+                        <div class="icon-wrapper bg-orange"><i class="ph ph-image"></i></div>
+                        <span>Tư liệu</span>
+                    </div>
+                    <div class="popup-item">
+                        <div class="icon-wrapper bg-green"><i class="ph ph-user-gear"></i></div>
+                        <span>Quản lý</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Administrative Modals -->
+    <!-- Form Modal (Add/Edit) -->
+    <div class="modal-overlay" id="member-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Thêm thành viên mới</h3>
+                <button class="close-modal" id="close-member-modal"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <form id="member-form">
+                <input type="hidden" id="edit-member-id">
+                <div class="form-group avatar-upload-group">
+                    <label>Ảnh đại diện</label>
+                    <div class="avatar-preview-container">
+                        <img src="https://ui-avatars.com/api/?name=User&background=eee&color=999" id="form-avatar-preview" alt="Preview">
+                        <div class="avatar-overlay">
+                            <i class="ph ph-camera"></i>
+                            <span>Đổi ảnh</span>
+                            <input type="file" id="m-avatar-input" accept="image/*">
+                        </div>
+                    </div>
+                    <input type="hidden" id="m-avatar-url">
+                </div>
+                <div class="form-group">
+                    <label for="m-name">Họ tên</label>
+                    <input type="text" id="m-name" placeholder="Ví dụ: Nguyễn Văn A" required>
+                </div>
+                <div class="form-group">
+                    <label for="m-gender">Giới tính</label>
+                    <select id="m-gender" class="form-select">
+                        <option value="male">Nam</option>
+                        <option value="female">Nữ</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display: flex; gap: 15px;">
+                    <div style="flex: 1;">
+                        <label for="m-birth">Ngày/Năm sinh</label>
+                        <input type="text" id="m-birth" placeholder="1990 hoặc 01/01/1990">
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="m-death">Ngày/Năm mất</label>
+                        <input type="text" id="m-death" placeholder="Nếu có">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="m-note">Ghi chú / Chức danh</label>
+                    <textarea id="m-note" rows="3" placeholder="Ví dụ: Chi Giáp, Trưởng tộc..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" id="cancel-member-modal">Hủy bỏ</button>
+                    <button type="submit" class="btn-save">Lưu thông tin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="delete-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Xác nhận xóa</h3>
+                <button class="close-modal" id="close-delete-modal"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="text-align: center; margin-bottom: 20px;">
+                <p>Bạn có chắc chắn muốn xóa thành viên <strong id="delete-member-name"></strong> khỏi phả đồ không?</p>
+                <p style="color: var(--danger); font-size: 13px; margin-top: 10px;"><i class="ph ph-warning"></i> Lưu ý: Hành động này không thể hoàn tác.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" id="cancel-delete-modal">Giữ lại</button>
+                <button class="btn-confirm-delete" id="confirm-delete-btn">Xóa vĩnh viễn</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Info Panel (Bottom Left) -->
+    <div class="quick-info-panel" id="quick-info-panel">
+        <div class="qi-avatar">
+            <img src="https://ui-avatars.com/api/?name=Gia+Toc&background=c9933b&color=fff&size=128" alt="Avatar" id="qi-img">
+        </div>
+        <div class="qi-content">
+            <h3 id="qi-name">Thành viên</h3>
+            <p class="qi-life" id="qi-dates">Chưa cập nhật</p>
+            <div class="qi-grid">
+                <div class="qi-item">
+                    <span class="qi-label">Thứ tự Đời</span>
+                    <span class="qi-value" id="qi-gen">Đời ...</span>
+                </div>
+                <div class="qi-item">
+                    <span class="qi-label">Số con cái</span>
+                    <span class="qi-value" id="qi-children">0</span>
+                </div>
+                <div class="qi-item">
+                    <span class="qi-label">Anh trai</span>
+                    <span class="qi-value" id="qi-older">0</span>
+                </div>
+                <div class="qi-item">
+                    <span class="qi-label">Em trai</span>
+                    <span class="qi-value" id="qi-younger">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Display Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-content settings-modal-content">
+            <div class="modal-header">
+                <h3>Cài đặt hiển thị Phả đồ</h3>
+                <button class="close-modal" id="close-settings-modal"><i class="ph-bold ph-x"></i></button>
+            </div>
+            
+            <div class="settings-tabs">
+                <button class="tab-btn active" data-tab="tab-bg">Giao diện</button>
+                <button class="tab-btn" data-tab="tab-size">Kích thước Đời</button>
+            </div>
+
+            <div class="tab-pane active" id="tab-bg">
+                <div class="form-group">
+                    <label>Màu nền sơ đồ</label>
+                    <input type="color" id="set-bg-color" value="#faf8f5">
+                </div>
+                <div class="form-group">
+                    <label>Màu thẻ thành viên</label>
+                    <input type="color" id="set-card-color" value="#ffffff">
+                </div>
+                <div class="form-group">
+                    <label>Hình nền mẫu</label>
+                    <div class="bg-presets" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        <button class="bg-preset" data-bg="none">Trắng</button>
+                        <button class="bg-preset" data-bg="paper">Giấy cũ</button>
+                        <button class="bg-preset" data-bg="silk">Lụa đào</button>
+                        <button class="bg-preset" data-bg="wood">Gỗ trầm</button>
+                        <button class="bg-preset" data-bg="wood-light">Gỗ sáng</button>
+                        <button class="bg-preset" data-bg="bamboo">Tre trúc</button>
+                        <button class="bg-preset" data-bg="floral">Hoa văn</button>
+                        <button class="bg-preset" data-bg="royal">Cung đình</button>
+                        <button class="bg-preset" data-bg="mesh">Lưới lanh</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane" id="tab-size">
+                <div id="gen-size-sliders" class="sliders-grid">
+                    <!-- Dynamic segments will be injected here via app.js -->
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-cancel" id="reset-settings">Mặc định</button>
+                <button class="btn-save" id="save-settings">Lưu & Áp dụng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App scripts -->
+    <script src="assets/app.js"></script>
+</body>
+</html>

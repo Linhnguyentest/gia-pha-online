@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gia Phả Dòng Họ</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Desktop Sidebar -->
+        <aside class="sidebar" id="desktop-sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="ph-fill ph-tree-evergreen logo-icon"></i>
+                    <span class="logo-text">Gia Phả</span>
+                </div>
+                <button class="toggle-btn" id="sidebar-toggle" title="Thu gọn/Mở rộng">
+                    <i class="ph ph-caret-left"></i>
+                </button>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="active">
+                    <a href="#" title="Trang chủ">
+                        <i class="ph ph-house"></i>
+                        <span class="link-name">Trang chủ</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="Lịch sử dòng họ">
+                        <i class="ph ph-book-open-text"></i>
+                        <span class="link-name">Lịch sử dòng họ</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="phado.html" title="Phả đồ dòng họ">
+                        <i class="ph ph-git-merge"></i>
+                        <span class="link-name">Phả đồ dòng họ</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="Hình ảnh, Video">
+                        <i class="ph ph-image"></i>
+                        <span class="link-name">Hình ảnh, Video</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="Tìm kiếm">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <span class="link-name">Tìm kiếm</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="Thống kê">
+                        <i class="ph ph-chart-bar"></i>
+                        <span class="link-name">Thống kê</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="Quản lý tài khoản">
+                        <i class="ph ph-user-gear"></i>
+                        <span class="link-name">Quản lý tài khoản</span>
+                    </a>
+                </li>
+            </ul>
+
+            <ul class="nav-links bottom-links">
+                <li>
+                    <a href="#" title="Đăng nhập / Đăng xuất">
+                        <i class="ph ph-sign-out"></i>
+                        <span class="link-name">Đăng xuất</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-greeting">
+                    <h1>Trang chủ</h1>
+                    <p>Chào mừng trở về cội nguồn, hôm nay là <span id="current-date"></span></p>
+                </div>
+                <div class="header-profile">
+                    <div class="notification-bell">
+                        <i class="ph ph-bell"></i>
+                        <span class="badge">2</span>
+                    </div>
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=BC8F8F&color=fff&rounded=true&bold=true" alt="User Avatar" class="avatar">
+                </div>
+            </header>
+
+            <div class="content-body">
+                <!-- Hero Section for Family -->
+                <div class="hero-banner glass-card">
+                    <div class="hero-content">
+                        <h2>Gia Phả <br/><span class="highlight-text">Nguyễn Tộc</span></h2>
+                        <p>Lưu giữ truyền thống, kết nối thế hệ. Cùng chung tay gìn giữ và phát huy giá trị cội nguồn cho muôn đời sau.</p>
+                        <button class="primary-btn" onclick="window.location.href='phado.html'">Khám phá phả đồ <i class="ph-bold ph-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <div class="dashboard-section-title">Tổng quan</div>
+                <!-- Feature Modules Grid -->
+                <div class="modules-grid">
+                    <div class="module-card">
+                        <div class="icon-wrapper bg-orange">
+                            <i class="ph-fill ph-book-open-text"></i>
+                        </div>
+                        <div class="module-info">
+                            <h3>Lịch sử</h3>
+                            <p>Nguồn gốc & truyền thống</p>
+                        </div>
+                    </div>
+
+                    <div class="module-card" onclick="window.location.href='phado.html'">
+                        <div class="icon-wrapper bg-green">
+                            <i class="ph-fill ph-git-merge"></i>
+                        </div>
+                        <div class="module-info">
+                            <h3>Phả đồ</h3>
+                            <p>Cây gia phả trực quan</p>
+                        </div>
+                    </div>
+
+                    <div class="module-card">
+                        <div class="icon-wrapper bg-blue">
+                            <i class="ph-fill ph-image"></i>
+                        </div>
+                        <div class="module-info">
+                            <h3>Tư liệu</h3>
+                            <p>Hình ảnh & Video</p>
+                        </div>
+                    </div>
+
+                    <div class="module-card">
+                        <div class="icon-wrapper bg-purple">
+                            <i class="ph-fill ph-chart-bar"></i>
+                        </div>
+                        <div class="module-info">
+                            <h3>Thống kê</h3>
+                            <p>Dữ liệu dòng tộc</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Calendar Section -->
+                <div class="events-section glass-card">
+                    <div class="section-header">
+                        <h3><i class="ph-fill ph-calendar-blank"></i> Lịch sự kiện & Ngày giỗ</h3>
+                        <a href="#" class="view-all">Xem tất cả <i class="ph ph-caret-right"></i></a>
+                    </div>
+                    <ul class="event-list">
+                        <li class="event-item">
+                            <div class="event-date">
+                                <span class="day">15</span>
+                                <span class="month">Tháng 4</span>
+                            </div>
+                            <div class="event-details">
+                                <h4>Giỗ Cụ Tổ Đời thứ 3</h4>
+                                <p><i class="ph ph-moon"></i> Âm lịch: Mùng 10 tháng 3, Giáp Thìn</p>
+                            </div>
+                            <div class="event-action">
+                                <button class="btn-icon" title="Nhắc nhở"><i class="ph ph-bell-ringing"></i></button>
+                            </div>
+                        </li>
+                        <li class="event-item">
+                            <div class="event-date">
+                                <span class="day">22</span>
+                                <span class="month">Tháng 5</span>
+                            </div>
+                            <div class="event-details">
+                                <h4>Họp họ thường niên</h4>
+                                <p><i class="ph ph-map-pin"></i> Địa điểm: Từ đường dòng họ</p>
+                            </div>
+                            <div class="event-action">
+                                <button class="btn-icon" title="Nhắc nhở"><i class="ph ph-bell"></i></button>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Bottom spacing for mobile -->
+            <div class="mobile-spacer"></div>
+        </main>
+
+        <!-- Mobile Bottom Nav -->
+        <nav class="mobile-nav" id="mobile-nav">
+            <div class="nav-item active">
+                <i class="ph-fill ph-house"></i>
+                <span>Trang chủ</span>
+            </div>
+            <div class="nav-item">
+                <i class="ph ph-book-open-text"></i>
+                <span>Lịch sử</span>
+            </div>
+            
+            <!-- Prominent Center Button -->
+            <a href="phado.html" class="nav-item center-btn-wrapper">
+                <div class="center-btn">
+                    <i class="ph-fill ph-git-merge"></i>
+                </div>
+                <span>Phả đồ</span>
+            </a>
+            
+            <div class="nav-item" id="mobile-functions-trigger">
+                <i class="ph ph-grid-four"></i>
+                <span>Chức năng</span>
+            </div>
+            <div class="nav-item">
+                <i class="ph ph-user"></i>
+                <span>Tài khoản</span>
+            </div>
+        </nav>
+
+        <!-- Mobile Functions Popup Menu -->
+        <div class="mobile-popup-overlay" id="functions-popup">
+            <div class="mobile-popup-content">
+                <div class="popup-header">
+                    <h3>Chức năng mở rộng</h3>
+                    <button class="close-popup" id="close-functions"><i class="ph-bold ph-x"></i></button>
+                </div>
+                <div class="popup-grid">
+                    <div class="popup-item">
+                        <div class="icon-wrapper bg-blue"><i class="ph ph-magnifying-glass"></i></div>
+                        <span>Tìm kiếm</span>
+                    </div>
+                    <div class="popup-item">
+                        <div class="icon-wrapper bg-purple"><i class="ph ph-chart-bar"></i></div>
+                        <span>Thống kê</span>
+                    </div>
+                    <div class="popup-item">
+                        <div class="icon-wrapper bg-orange"><i class="ph ph-image"></i></div>
+                        <span>Tư liệu</span>
+                    </div>
+                    <div class="popup-item">
+                        <div class="icon-wrapper bg-green"><i class="ph ph-user-gear"></i></div>
+                        <span>Quản lý</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+[
+  {
+    "id": "m1",
+    "full_name": "Nguyễn Văn Đại",
+    "notes": "Cụ Tổ (Đời 1)",
+    "birth_date": "1850",
+    "death_date": "1930",
+    "gender": "male",
+    "generation": 1,
+    "is_alive": false
+  },
+  {
+    "id": "m2",
+    "full_name": "Nguyễn Văn Bách",
+    "notes": "Trưởng tộc (Đời 2)",
+    "birth_date": "1880",
+    "death_date": "1965",
+    "gender": "male",
+    "generation": 2,
+    "father_id": "m1",
+    "is_alive": false
+  },
+  {
+    "id": "m3",
+    "full_name": "Nguyễn Văn Hùng",
+    "notes": "Chi Giáp (Đời 3)",
+    "birth_date": "1905",
+    "death_date": "1980",
+    "gender": "male",
+    "generation": 3,
+    "father_id": "m2",
+    "is_alive": false
+  },
+  {
+    "id": "m4",
+    "full_name": "Nguyễn Văn Dũng",
+    "notes": "Chi Ất (Đời 3)",
+    "birth_date": "1910",
+    "death_date": "1985",
+    "gender": "male",
+    "generation": 3,
+    "father_id": "m2",
+    "is_alive": false
+  },
+  {
+    "id": "m5",
+    "full_name": "Nguyễn Minh",
+    "notes": "Cháu Đích tôn (Đời 4)",
+    "birth_date": "1935",
+    "death_date": "2010",
+    "gender": "male",
+    "generation": 4,
+    "father_id": "m4",
+    "is_alive": false
+  },
+  {
+    "id": "m6",
+    "full_name": "Nguyễn Thị Liên",
+    "notes": "Trưởng Nữ (Đời 2)",
+    "birth_date": "1882",
+    "death_date": "1960",
+    "gender": "female",
+    "generation": 2,
+    "father_id": "m1",
+    "is_alive": false
+  },
+  {
+    "id": "m7",
+    "full_name": "Trần Văn Tài",
+    "notes": "Cháu Ngoại (Đời 3)",
+    "birth_date": "1908",
+    "death_date": "1975",
+    "gender": "male",
+    "generation": 3,
+    "mother_id": "m6",
+    "is_alive": false
+  }
+]
