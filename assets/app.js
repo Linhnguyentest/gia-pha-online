@@ -137,10 +137,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // --- 3. TREE RENDERING ---
-    async function loadTree() {
-        allMembers = await loadMembers();
+    async function loadTree(data = null) {
+        if (data) {
+            allMembers = data;
+        } else {
+            allMembers = await loadMembers();
+        }
 
-        if (!allMembers.length) {
+        if (!allMembers || !allMembers.length) {
             mountPoint.innerHTML = `
                 <div style="padding: 30px; text-align: center; background: rgba(255,255,255,0.7); border-radius: 20px; max-width: 400px; margin: 60px auto; backdrop-filter: blur(10px);">
                     <i class="ph ph-tree-evergreen" style="font-size: 48px; color: var(--primary);"></i>
@@ -158,19 +162,20 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        const roots = allMembers.filter(m => !m.father_id && !m.mother_id);
+        const roots = allMembers.filter(m => !m.father_id || m.father_id === "" || m.father_id === "null");
         mountPoint.innerHTML = '';
         const rootUl = document.createElement('ul');
-        roots.forEach(root => rootUl.appendChild(renderNode(root)));
+        roots.forEach(root => rootUl.appendChild(renderNode(root, 1)));
         mountPoint.appendChild(rootUl);
 
         setTimeout(() => {
             drawGenerationMarkers();
             initPanzoom();
-        }, 150);
+            setTimeout(fitTreeToScreen, 300); // Đợi layout ổn định hoàn toàn rồi mới căn chỉnh
+        }, 200);
     }
 
-    function renderNode(member) {
+    function renderNode(member, level = 1) {
         const li = document.createElement('li');
         const isFemale = member.gender === 'female';
         const avatarHtml = member.avatar
@@ -180,7 +185,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         const card = document.createElement('div');
         card.className = `member-card ${isFemale ? 'female-node' : ''}`;
         card.setAttribute('data-id', member.id);
-        card.setAttribute('data-gen', member.generation || 1);
+        
+        // Sử dụng level được truyền vào nếu dữ liệu thế hệ bị thiếu hoặc sai lệch (mặc định 1)
+        const displayGen = (member.generation && member.generation > 1) ? member.generation : level;
+        card.setAttribute('data-gen', displayGen);
+        
         card.innerHTML = `
             <div class="card-actions">
                 <button class="action-btn btn-add" title="Thêm con" data-id="${member.id}"><i class="ph ph-plus"></i></button>
@@ -197,8 +206,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const children = allMembers.filter(m => m.father_id === member.id || m.mother_id === member.id);
         if (children.length > 0) {
+            // Sắp xếp con cái theo ID (Anh bên trái, Em bên phải)
+            children.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
+            
             const childUl = document.createElement('ul');
-            children.forEach(child => childUl.appendChild(renderNode(child)));
+            children.forEach(child => childUl.appendChild(renderNode(child, displayGen + 1)));
             li.appendChild(childUl);
         }
 
@@ -206,10 +218,77 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // --- 4. PANZOOM ---
+    function fitTreeToScreen() {
+        if (!panzoomInstance || !treeCanvasWrapper || !treeContainer) return;
+
+        // Reset về trạng thái chuẩn để lấy kích thước
+        panzoomInstance.reset({ animate: false });
+        
+        const wrapperW = treeCanvasWrapper.clientWidth;
+        const wrapperH = treeCanvasWrapper.clientHeight;
+        
+        // Sử dụng getBoundingClientRect để lấy kích thước chính xác nhất
+        const treeRect = treeContainer.getBoundingClientRect();
+        const treeW = treeContainer.scrollWidth || treeRect.width;
+        const treeH = treeContainer.scrollHeight || treeRect.height;
+
+        // Nếu cái cây chưa thực sự có kích thước, thoát ra
+        if (treeW < 100 || treeH < 100) return;
+
+        // Tìm ô Cụ Tổ (Đời 1) để làm tiêu điểm
+        const rootCard = treeContainer.querySelector('.member-card[data-gen="1"]');
+        
+        const padding = 100;
+        const scaleW = (wrapperW - padding) / treeW;
+        const scaleH = (wrapperH - padding) / treeH;
+        let finalScale = Math.min(scaleW, scaleH);
+
+        // Với phả hệ cực lớn, đừng thu nhỏ quá 0.25 để còn nhìn thấy tên
+        if (treeW > 5000) finalScale = Math.max(finalScale, 0.25);
+
+        if (finalScale > 0.8) finalScale = 0.8;
+        if (finalScale < 0.1) finalScale = 0.1;
+
+        // Áp dụng zoom mà không dùng hiệu ứng animation để đo đạc chuẩn xác ngay lập tức
+        panzoomInstance.zoom(finalScale, { animate: false });
+        
+        // Đo đạc thực tế sau khi đã zoom
+        const rootCard = treeContainer.querySelector('.member-card[data-gen="1"]');
+        const wrapperRect = treeCanvasWrapper.getBoundingClientRect();
+        
+        if (rootCard) {
+            const rootRect = rootCard.getBoundingClientRect();
+            // Lấy tâm hiện tại của ô Cụ Tổ trong hệ tọa độ màn hình
+            const curRootX = rootRect.left + (rootRect.width / 2);
+            const curRootY = rootRect.top;
+            
+            // Tọa độ mục tiêu (giữa chiều ngang màn hình, cách lề trên 120px)
+            const targetX = wrapperRect.left + (wrapperW / 2);
+            const targetY = wrapperRect.top + 120;
+            
+            // Tính toán độ lệch và thực hiện pan để bù đắp
+            const diffX = targetX - curRootX;
+            const diffY = targetY - curRootY;
+            
+            panzoomInstance.pan(diffX, diffY, { animate: true });
+        } else {
+            // Fallback: Căn giữa toàn bộ nếu không tìm thấy Cụ Tổ
+            const updatedTreeRect = treeContainer.getBoundingClientRect();
+            const curCenterX = updatedTreeRect.left + (updatedTreeRect.width / 2);
+            const targetX = wrapperRect.left + (wrapperW / 2);
+            panzoomInstance.pan(targetX - curCenterX, 100, { animate: true });
+        }
+    }
+
     function initPanzoom() {
         if (panzoomInstance) { try { panzoomInstance.destroy(); } catch(e) {} }
         if (!treeCanvasWrapper || !treeContainer || typeof Panzoom === 'undefined') return;
-        panzoomInstance = Panzoom(treeContainer, { maxScale: 3, minScale: 0.1, step: 0.1, cursor: 'grab' });
+        panzoomInstance = Panzoom(treeContainer, { 
+            maxScale: 3, 
+            minScale: 0.1, 
+            step: 0.1, 
+            cursor: 'grab'
+        });
         const onDown = (e) => { if (e.target.closest('button') || e.target.closest('.member-card')) return; panzoomInstance.handleDown(e); };
         treeCanvasWrapper.addEventListener('pointerdown', onDown);
         document.addEventListener('pointermove', (e) => panzoomInstance.handleMove(e));
@@ -217,7 +296,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         treeCanvasWrapper.addEventListener('wheel', panzoomInstance.zoomWithWheel);
         document.getElementById('zoom-in')?.addEventListener('click', panzoomInstance.zoomIn);
         document.getElementById('zoom-out')?.addEventListener('click', panzoomInstance.zoomOut);
-        document.getElementById('zoom-reset')?.addEventListener('click', () => panzoomInstance.reset());
+        document.getElementById('zoom-reset')?.addEventListener('click', fitTreeToScreen);
     }
 
     // --- 5. GENERATION MARKERS ---
@@ -317,6 +396,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 currentParentId = id;
                 currentEditId = null;
                 memberForm.reset();
+                document.getElementById('m-gender').value = 'male'; // Mặc định là Nam
                 openMemberModal(`Thêm con cho: ${member.full_name}`);
             } else if (btn.classList.contains('btn-edit')) {
                 currentEditId = id;
@@ -375,7 +455,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelectorAll('.close-modal, .btn-cancel').forEach(btn => btn.addEventListener('click', closeAllModals));
 
     // Generate simple unique ID
-    function genId() { return 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
+    // Tạo ID theo quy tắc phân cấp (1, 1.1, 1.2...)
+    function genId(parentId) {
+        if (!parentId) {
+            const roots = allMembers.filter(m => !m.father_id && !m.mother_id);
+            if (roots.length === 0) return "1";
+            const rootIds = roots.map(m => parseInt(m.id)).filter(id => !isNaN(id));
+            const maxId = rootIds.length > 0 ? Math.max(...rootIds) : 0;
+            return (maxId + 1).toString();
+        } else {
+            const children = allMembers.filter(m => m.father_id === parentId || m.mother_id === parentId);
+            return parentId + "." + (children.length + 1);
+        }
+    }
 
     memberForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -409,7 +501,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             } else if (currentParentId !== undefined) {
                 const parent = updated.find(m => m.id === currentParentId);
                 const newMember = {
-                    id: genId(),
+                    id: genId(currentParentId),
                     ...formData,
                     generation: currentParentId ? (parent?.generation || 0) + 1 : 1,
                     father_id: (currentParentId && parent?.gender === 'male') ? currentParentId : null,
@@ -493,26 +585,45 @@ document.addEventListener("DOMContentLoaded", async () => {
         const parent = document.querySelector(`.gen-control-block[data-gen="${gen}"]`);
         if (!parent) return;
         const orient = parent.querySelector('.btn-orient.active')?.getAttribute('data-orient') || 'ngang';
-        const ratio = parent.querySelector('.btn-ratio.active')?.getAttribute('data-ratio') || '1:1';
+        const ratioBtn = parent.querySelector('.btn-ratio.active');
+        const ratio = ratioBtn?.getAttribute('data-ratio') || 'default';
         const scale = parent.querySelector('.scale-slider').value / 100;
         const fontSize = (parent.querySelector('.font-slider')?.value || 100) / 100;
         const lineHeight = (parent.querySelector('.line-height-slider')?.value || 120) / 100;
         const showNotes = parent.querySelector('.toggle-notes-gen')?.checked ?? true;
         const showDates = parent.querySelector('.toggle-dates-gen')?.checked ?? true;
 
-        const base = 130;
-        let multiplier = ratio === '1:2' ? 2 : ratio === '1:3' ? 3 : 1;
-        const sizes = orient === 'doc' ? { w: base, h: base * multiplier } : { w: base * multiplier, h: base };
-        const finalW = Math.round(sizes.w * scale);
-        const finalH = Math.round(sizes.h * scale);
+        let finalW, finalH;
+
+        if (ratio === 'default') {
+            // Sử dụng chiều rộng gốc từ CSS cũ
+            const defaultWidths = [0, 220, 200, 180, 180, 180, 180, 180, 180, 180, 180];
+            const baseW = defaultWidths[gen] || 180;
+            finalW = Math.round(baseW * scale);
+            finalH = 'auto'; // Chiều cao tự động như ban đầu
+        } else {
+            const base = 130;
+            let multiplier = ratio === '1:2' ? 2 : ratio === '1:3' ? 3 : 1;
+            const sizes = orient === 'doc' ? { w: base, h: base * multiplier } : { w: base * multiplier, h: base };
+            finalW = Math.round(sizes.w * scale);
+            finalH = Math.round(sizes.h * scale) + 'px';
+        }
 
         document.documentElement.style.setProperty(`--gen-${gen}-w`, finalW + 'px');
-        document.documentElement.style.setProperty(`--gen-${gen}-h`, finalH + 'px');
+        document.documentElement.style.setProperty(`--gen-${gen}-h`, finalH);
         document.documentElement.style.setProperty(`--gen-${gen}-scale`, scale);
         document.documentElement.style.setProperty(`--gen-${gen}-fs`, fontSize);
         document.documentElement.style.setProperty(`--gen-${gen}-lh`, lineHeight);
-        parent.querySelector('.scale-val').textContent = Math.round(scale * 100) + '%';
-        if (parent.querySelector('.font-val')) parent.querySelector('.font-val').textContent = Math.round(fontSize * 100) + '%';
+        
+        // Cập nhật nhãn số liệu
+        const scaleVal = parent.querySelector('.scale-val');
+        if (scaleVal) scaleVal.textContent = Math.round(scale * 100) + '%';
+        
+        const fontVal = parent.querySelector('.font-val');
+        if (fontVal) fontVal.textContent = Math.round(fontSize * 100) + '%';
+        
+        const lhVal = parent.querySelector('.lh-val');
+        if (lhVal) lhVal.textContent = lineHeight.toFixed(1);
 
         if (!showNotes) treeContainer.classList.add(`hide-gen-${gen}-notes`); else treeContainer.classList.remove(`hide-gen-${gen}-notes`);
         if (!showDates) treeContainer.classList.add(`hide-gen-${gen}-dates`); else treeContainer.classList.remove(`hide-gen-${gen}-dates`);
@@ -535,45 +646,47 @@ document.addEventListener("DOMContentLoaded", async () => {
             control.setAttribute('data-gen', i);
             control.innerHTML = `
                 <div class="gen-header">
-                    <span>Thế hệ Đời ${i}</span>
-                    <button class="gen-sync-btn" title="Áp dụng cho các đời sau" data-gen="${i}"><i class="ph-bold ph-arrow-fat-line-down"></i></button>
+                    <span style="font-weight:700; color:var(--text-main); font-size:15px;">Thế hệ Đời ${i}</span>
+                    <button class="gen-sync-btn" title="Áp dụng cho các đời sau" data-gen="${i}">
+                        <i class="ph-bold ph-check-square-offset"></i>
+                        <span style="font-size:11px; font-weight:700; margin-left:4px;">Đồng bộ đời sau</span>
+                    </button>
                 </div>
                 <div class="control-row">
-                    <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:5px">Hướng & Tỷ lệ:</label>
+                    <label style="font-size:12px;color:#333;font-weight:600;display:block;margin-bottom:8px">Hướng & Tỷ lệ:</label>
                     <div class="ratio-group">
                         <button class="btn-orient active" data-orient="ngang">Ngang</button>
                         <button class="btn-orient" data-orient="doc">Dọc</button>
-                        <div style="width:1px;background:#eee;margin:0 5px"></div>
-                        <button class="btn-ratio active" data-ratio="1:1">1:1</button>
+                        <div style="width:1px;background:#ddd;margin:0 5px"></div>
+                        <button class="btn-ratio active" data-ratio="default" style="background:rgba(0,0,0,0.05); color:#666;">Mặc định</button>
+                        <button class="btn-ratio" data-ratio="1:1">1:1</button>
                         <button class="btn-ratio" data-ratio="1:2">1:2</button>
                         <button class="btn-ratio" data-ratio="1:3">1:3</button>
                     </div>
                 </div>
                 <div class="control-row">
-                    <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:5px">Kích thước:</label>
-                    <div class="scale-control"><input type="range" min="50" max="250" value="100" class="scale-slider"><span class="scale-val">100%</span></div>
+                    <label style="font-size:12px;color:#333;font-weight:600;display:block;margin-bottom:8px">Kích thước:</label>
+                    <div class="scale-control"><input type="range" min="50" max="250" value="100" class="scale-slider"><span class="scale-val" style="font-weight:700; color:var(--primary);">100%</span></div>
                 </div>
                 <div class="control-row">
-                    <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:5px">Cỡ chữ:</label>
-                    <div class="scale-control"><input type="range" min="50" max="200" value="100" class="font-slider"><span class="font-val">100%</span></div>
+                    <label style="font-size:12px;color:#333;font-weight:600;display:block;margin-bottom:8px">Cỡ chữ:</label>
+                    <div class="scale-control"><input type="range" min="50" max="200" value="100" class="font-slider"><span class="font-val" style="font-weight:700; color:var(--primary);">100%</span></div>
                 </div>
                 <div class="control-row">
-                    <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:5px">Dãn dòng:</label>
-                    <div class="scale-control"><input type="range" min="10" max="250" value="120" class="line-height-slider"><span class="lh-val">1.2</span></div>
+                    <label style="font-size:12px;color:#333;font-weight:600;display:block;margin-bottom:8px">Dãn dòng:</label>
+                    <div class="scale-control"><input type="range" min="10" max="250" value="120" class="line-height-slider"><span class="lh-val" style="font-weight:700; color:var(--primary);">1.2</span></div>
                 </div>
                 <div class="control-row">
                     <div class="gen-checkbox-group">
-                        <label class="gen-check-item"><input type="checkbox" class="toggle-notes-gen" checked><span>Hiện Ghi chú</span></label>
-                        <label class="gen-check-item"><input type="checkbox" class="toggle-dates-gen" checked><span>Hiện Năm</span></label>
+                        <label class="gen-check-item"><input type="checkbox" class="toggle-notes-gen" checked><span style="font-weight:600; color:#333; margin-left:6px;">Hiện Ghi chú</span></label>
+                        <label class="gen-check-item"><input type="checkbox" class="toggle-dates-gen" checked><span style="font-weight:600; color:#333; margin-left:6px;">Hiện Năm</span></label>
                     </div>
                 </div>`;
-            control.querySelectorAll('.btn-orient').forEach(o => o.addEventListener('click', () => { control.querySelectorAll('.btn-orient').forEach(b => b.classList.remove('active')); o.classList.add('active'); updateGenSize(i); }));
-            control.querySelectorAll('.btn-ratio').forEach(r => r.addEventListener('click', () => { control.querySelectorAll('.btn-ratio').forEach(b => b.classList.remove('active')); r.classList.add('active'); updateGenSize(i); }));
-            control.querySelector('.scale-slider').addEventListener('input', () => updateGenSize(i));
-            control.querySelector('.font-slider').addEventListener('input', () => updateGenSize(i));
-            control.querySelector('.line-height-slider').addEventListener('input', (e) => { control.querySelector('.lh-val').textContent = (e.target.value / 100).toFixed(1); updateGenSize(i); });
-            control.querySelectorAll('.toggle-notes-gen, .toggle-dates-gen').forEach(chk => chk.addEventListener('change', () => updateGenSize(i)));
-            control.querySelector('.gen-sync-btn').addEventListener('click', () => {
+
+            function syncThis() {
+                const syncBtn = control.querySelector('.gen-sync-btn');
+                if (!syncBtn.classList.contains('active')) return;
+                
                 const orient = control.querySelector('.btn-orient.active')?.getAttribute('data-orient');
                 const ratio = control.querySelector('.btn-ratio.active')?.getAttribute('data-ratio');
                 const scale = control.querySelector('.scale-slider').value;
@@ -581,21 +694,89 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const lineHeight = control.querySelector('.line-height-slider').value;
                 const showNotes = control.querySelector('.toggle-notes-gen').checked;
                 const showDates = control.querySelector('.toggle-dates-gen').checked;
+                
                 for (let j = i + 1; j <= maxGen; j++) {
                     const t = document.querySelector(`.gen-control-block[data-gen="${j}"]`);
                     if (!t) continue;
                     t.querySelectorAll('.btn-orient').forEach(b => { b.classList.remove('active'); if (b.getAttribute('data-orient') === orient) b.classList.add('active'); });
                     t.querySelectorAll('.btn-ratio').forEach(b => { b.classList.remove('active'); if (b.getAttribute('data-ratio') === ratio) b.classList.add('active'); });
                     t.querySelector('.scale-slider').value = scale;
+                    t.querySelector('.scale-val').textContent = scale + '%';
                     t.querySelector('.font-slider').value = fontSize;
+                    t.querySelector('.font-val').textContent = fontSize + '%';
                     t.querySelector('.line-height-slider').value = lineHeight;
                     t.querySelector('.lh-val').textContent = (lineHeight / 100).toFixed(1);
                     t.querySelector('.toggle-notes-gen').checked = showNotes;
                     t.querySelector('.toggle-dates-gen').checked = showDates;
                     updateGenSize(j);
                 }
+            }
+
+            control.querySelectorAll('.btn-orient').forEach(o => o.addEventListener('click', () => { 
+                control.querySelectorAll('.btn-orient').forEach(b => b.classList.remove('active')); 
+                o.classList.add('active'); 
+                updateGenSize(i);
+                syncThis();
+            }));
+
+            control.querySelectorAll('.btn-ratio').forEach(r => r.addEventListener('click', () => { 
+                if (r.getAttribute('data-ratio') === 'default') {
+                    // Reset to default
+                    control.querySelectorAll('.btn-orient').forEach(b => b.classList.remove('active'));
+                    control.querySelector('.btn-orient[data-orient="ngang"]').classList.add('active');
+                    control.querySelectorAll('.btn-ratio').forEach(b => b.classList.remove('active'));
+                    control.querySelector('.btn-ratio[data-ratio="default"]').classList.add('active');
+                    control.querySelector('.scale-slider').value = 100;
+                    control.querySelector('.font-slider').value = 100;
+                    control.querySelector('.line-height-slider').value = 120;
+                    control.querySelector('.toggle-notes-gen').checked = true;
+                    control.querySelector('.toggle-dates-gen').checked = true;
+                } else {
+                    control.querySelectorAll('.btn-ratio').forEach(b => b.classList.remove('active')); 
+                    r.classList.add('active'); 
+                }
+                updateGenSize(i);
+                syncThis();
+            }));
+
+            control.querySelector('.scale-slider').addEventListener('input', (e) => {
+                control.querySelector('.scale-val').textContent = e.target.value + '%';
+                updateGenSize(i);
+                syncThis();
             });
-            updateGenSize(i);
+            control.querySelector('.font-slider').addEventListener('input', (e) => {
+                control.querySelector('.font-val').textContent = e.target.value + '%';
+                updateGenSize(i);
+                syncThis();
+            });
+            control.querySelector('.line-height-slider').addEventListener('input', (e) => {
+                control.querySelector('.lh-val').textContent = (e.target.value / 100).toFixed(1);
+                updateGenSize(i);
+                syncThis();
+            });
+            control.querySelectorAll('.toggle-notes-gen, .toggle-dates-gen').forEach(chk => chk.addEventListener('change', () => {
+                updateGenSize(i);
+                syncThis();
+            }));
+
+            const syncBtn = control.querySelector('.gen-sync-btn');
+            syncBtn.innerHTML = '<i class="ph-bold ph-square"></i> <span style="font-size:11px; font-weight:700; margin-left:4px;">Chế độ: Đơn lẻ</span>';
+            syncBtn.style.color = "#999";
+            syncBtn.style.background = "#f5f5f5";
+
+            syncBtn.addEventListener('click', () => {
+                const isActive = syncBtn.classList.toggle('active');
+                if (isActive) {
+                    syncBtn.innerHTML = '<i class="ph-bold ph-check-square"></i> <span style="font-size:11px; font-weight:700; margin-left:4px;">Chế độ: Đồng bộ đời sau</span>';
+                    syncBtn.style.color = "var(--primary)";
+                    syncBtn.style.background = "rgba(201,147,59,0.1)";
+                    syncThis();
+                } else {
+                    syncBtn.innerHTML = '<i class="ph-bold ph-square"></i> <span style="font-size:11px; font-weight:700; margin-left:4px;">Chế độ: Đơn lẻ</span>';
+                    syncBtn.style.color = "#999";
+                    syncBtn.style.background = "#f5f5f5";
+                }
+            });
             sliderContainer.appendChild(control);
         }
     }
@@ -609,41 +790,141 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     // --- 9. EXPORT DATA ---
-    document.getElementById('export-data-btn')?.addEventListener('click', () => {
-        const json = JSON.stringify(allMembers, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
+    const CSV_HEADERS = {
+        id: "ID",
+        full_name: "Họ tên",
+        birth_date: "Ngày sinh",
+        death_date: "Ngày mất",
+        gender: "Giới tính",
+        generation: "Đời",
+        father_id: "ID Cha",
+        mother_id: "ID Mẹ",
+        notes: "Ghi chú",
+        is_alive: "Còn sống",
+        avatar: "Ảnh đại diện"
+    };
+
+    function jsonToCSV(items) {
+        const headerKeys = Object.keys(CSV_HEADERS);
+        const headerNames = Object.values(CSV_HEADERS);
+        
+        const rows = [headerNames.join(",")];
+        
+        items.forEach(item => {
+            const row = headerKeys.map(key => {
+                let val = item[key] || "";
+                
+                // Format specific values for CSV
+                if (key === 'gender') val = val === 'male' ? 'Nam' : 'Nữ';
+                if (key === 'is_alive') val = val ? 'Có' : 'Không';
+                
+                // Escape quotes and wrap in quotes if contains comma or quote
+                const escaped = ('' + val).replace(/"/g, '""');
+                return (escaped.includes(",") || escaped.includes('"')) ? `"${escaped}"` : escaped;
+            });
+            rows.push(row.join(","));
+        });
+        
+        return rows.join("\n");
+    }
+
+    document.getElementById('export-csv-btn')?.addEventListener('click', () => {
+        const csv = jsonToCSV(allMembers);
+        // Add UTF-8 BOM for Excel visibility of Vietnamese characters
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'members.json';
+        a.download = 'gia_pha_nguyen_toc.csv';
         a.click();
         URL.revokeObjectURL(url);
     });
 
     // --- 10. IMPORT DATA ---
-    document.getElementById('import-data-btn')?.addEventListener('click', () => {
+    function parseCSV(csvText) {
+        // Loại bỏ ký tự BOM (Byte Order Mark) nếu có (thường xuất hiện từ Excel)
+        if (csvText.startsWith('\uFEFF')) {
+            csvText = csvText.substring(1);
+        }
+
+        const lines = csvText.split(/\r?\n/);
+        if (lines.length < 2) return [];
+
+        // Helper to split CSV line handling quotes
+        function splitCSVLine(line) {
+            const result = [];
+            let current = "";
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    if (inQuotes && line[i+1] === '"') { // Escaped quote
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = "";
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        const headers = splitCSVLine(lines[0]).map(h => h.trim());
+        const headerToKey = {};
+        Object.entries(CSV_HEADERS).forEach(([key, name]) => {
+            const idx = headers.indexOf(name);
+            if (idx > -1) headerToKey[idx] = key;
+        });
+
+        const results = [];
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            const values = splitCSVLine(lines[i]);
+            const item = {};
+            Object.entries(headerToKey).forEach(([idx, key]) => {
+                let val = values[idx] || "";
+                
+                // Convert back specific values
+                if (key === 'gender') val = val === 'Nam' ? 'male' : 'female';
+                if (key === 'is_alive') val = (val === 'Có' || val === 'true');
+                if (key === 'generation') val = val ? (parseInt(val) || null) : null;
+                
+                item[key] = val;
+            });
+            if (item.id) results.push(item);
+        }
+        return results;
+    }
+
+    document.getElementById('import-csv-btn')?.addEventListener('click', () => {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.json';
+        input.accept = '.csv';
         input.onchange = (e) => {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = (ev) => {
                 try {
-                    const imported = JSON.parse(ev.target.result);
-                    if (Array.isArray(imported)) {
+                    const imported = parseCSV(ev.target.result);
+                    if (imported.length > 0) {
                         saveMembers(imported);
-                        loadTree();
-                        alert('Nhập dữ liệu thành công!');
+                        loadTree(imported); // Truyền trực tiếp dữ liệu vừa nhập
+                        alert(`Nhập thành công ${imported.length} thành viên từ CSV!`);
                     } else {
-                        alert('File JSON không đúng định dạng. Cần là mảng thành viên.');
+                        alert('Không tìm thấy dữ liệu hợp lệ trong file CSV.');
                     }
                 } catch (err) {
-                    alert('Lỗi đọc file: ' + err.message);
+                    alert('Lỗi khi xử lý CSV: ' + err.message);
                 }
             };
-            reader.readAsText(file);
+            reader.readAsText(file, 'UTF-8');
         };
         input.click();
     });
