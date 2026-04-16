@@ -966,7 +966,8 @@ ul {
 
 /* --- Tree CSS Drawing --- */
 .tree-container ul {
-    padding-top: 30px;
+    /* Mặc định 30px, sẽ bị ghi đè bởi biến động theo đời */
+    padding-top: var(--gen-current-v-gap, 30px);
     position: relative;
     transition: var(--transition);
     display: flex;
@@ -993,7 +994,7 @@ ul {
     right: 50%;
     border-top: 2px solid var(--primary-light);
     width: 50%;
-    height: 30px;
+    height: var(--current-v-gap, 30px);
 }
 .tree-container li::after {
     right: auto;
@@ -1022,7 +1023,8 @@ ul {
 }
 
 .tree-container ul:has(> li:only-child)::before {
-    height: 80px;
+    /* Đường kẻ dọc cho con duy nhất, dãn theo tỉ lệ */
+    height: calc(var(--current-v-gap, 30px) + 50px);
 }
 
 /* Vertical line centering adjustments */

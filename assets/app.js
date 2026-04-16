@@ -197,11 +197,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         card.className = `member-card ${isFemale ? 'female-node' : ''}`;
         card.setAttribute('data-id', member.id);
         
-        // Sử dụng level được truyền vào nếu dữ liệu thế hệ bị thiếu hoặc sai lệch (mặc định 1)
         const displayGen = (member.generation && member.generation > 1) ? member.generation : level;
-        card.setAttribute('data-gen', displayGen);
-        
-        card.innerHTML = `
+        li.setAttribute('data-gen', displayGen);
+        li.style.setProperty('--current-v-gap', `var(--gen-${displayGen}-v-gap)`);
+
+        const card = document.createElement('div');
             <div class="card-actions">
                 <button class="action-btn btn-add" title="Thêm con" data-id="${member.id}"><i class="ph ph-plus"></i></button>
                 <button class="action-btn btn-edit" title="Sửa" data-id="${member.id}"><i class="ph ph-pencil-simple"></i></button>
@@ -221,6 +221,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             children.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
             
             const childUl = document.createElement('ul');
+            childUl.style.setProperty('--current-v-gap', `var(--gen-${displayGen + 1}-v-gap)`);
             children.forEach(child => childUl.appendChild(renderNode(child, displayGen + 1)));
             li.appendChild(childUl);
         }
@@ -626,6 +627,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.documentElement.style.setProperty(`--gen-${gen}-fs`, fontSize);
         document.documentElement.style.setProperty(`--gen-${gen}-lh`, lineHeight);
         
+        // Cập nhật dãn cách dọc linh hoạt (mặc định 60px dãn theo tỉ lệ scale)
+        const vGap = Math.round(60 * scale);
+        document.documentElement.style.setProperty(`--gen-${gen}-v-gap`, vGap + 'px');
+        
         // Cập nhật nhãn số liệu
         const scaleVal = parent.querySelector('.scale-val');
         if (scaleVal) scaleVal.textContent = Math.round(scale * 100) + '%';
@@ -644,6 +649,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (orient === 'doc') { card.classList.add('node-vertical-text'); card.classList.remove('node-horizontal-text'); }
             else { card.classList.add('node-horizontal-text'); card.classList.remove('node-vertical-text'); }
         });
+
+        // Đồng bộ hóa nhãn "Đời" ngay khi thay đổi kích thước
+        drawGenerationMarkers();
     }
 
     function generateSizeSliders() {
