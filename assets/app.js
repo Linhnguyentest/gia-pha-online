@@ -825,7 +825,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             rows.push(row.join(","));
         });
         
-        return rows.join("\n");
+        return rows.join("\r\n");
     }
 
     document.getElementById('export-csv-btn')?.addEventListener('click', () => {
@@ -850,7 +850,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const lines = csvText.split(/\r?\n/);
         if (lines.length < 2) return [];
 
-        // Helper to split CSV line handling quotes
+        // Helper to split CSV line handling quotes and spaces
         function splitCSVLine(line) {
             const result = [];
             let current = "";
@@ -865,13 +865,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                         inQuotes = !inQuotes;
                     }
                 } else if (char === ',' && !inQuotes) {
-                    result.push(current);
+                    result.push(current.trim()); // Xử lý khoảng trắng giữ các cột
                     current = "";
                 } else {
                     current += char;
                 }
             }
-            result.push(current.trim());
+            result.push(current.trim()); // Xử lý khoảng trắng ở cột cuối
             return result;
         }
 
