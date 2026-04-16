@@ -9,6 +9,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     let currentParentId = null;
     let currentEditId = null;
     let panzoomInstance = null;
+    
+    // Quản lý đa phả đồ
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentTreeFile = urlParams.get('tree') || localStorage.getItem('current-tree-file') || 'data/members.json';
+    if (!currentTreeFile.startsWith('data/')) currentTreeFile = 'data/' + currentTreeFile;
+    localStorage.setItem('current-tree-file', currentTreeFile);
 
     // --- 1. SIDEBAR & NAVIGATION ---
     const sidebar = document.getElementById("desktop-sidebar");
@@ -33,20 +39,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- 2. DATA MANAGEMENT (Local JSON File) ---
 
-    // Load from localStorage first (so edits persist across refresh), fallback to members.json
+    // Load from localStorage first (so edits persist across refresh), fallback to server file
     async function loadMembers() {
+        const cacheKey = `gia-pha-members-${currentTreeFile}`;
         // Always try to get latest from server first in online mode
         try {
-            const res = await fetch('data/members.json?v=' + Date.now());
+            const res = await fetch(`${currentTreeFile}?v=${Date.now()}`);
             if (res.ok) {
                 const data = await res.json();
-                // If server data exists, update local storage but keep local as backup
-                localStorage.setItem('gia-pha-members', JSON.stringify(data));
+                localStorage.setItem(cacheKey, JSON.stringify(data));
                 return data;
             }
         } catch (e) {}
 
-        const saved = localStorage.getItem('gia-pha-members');
+        const saved = localStorage.getItem(cacheKey);
         if (saved) {
             try { return JSON.parse(saved); } catch(e) {}
         }
@@ -54,7 +60,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function saveMembers(members) {
-        localStorage.setItem('gia-pha-members', JSON.stringify(members));
+        const cacheKey = `gia-pha-members-${currentTreeFile}`;
+        localStorage.setItem(cacheKey, JSON.stringify(members));
         allMembers = members;
     }
 
@@ -71,7 +78,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    filePath: 'data/members.json',
+                    filePath: currentTreeFile,
                     data: allMembers
                 })
             });
@@ -173,6 +180,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             initPanzoom();
             setTimeout(fitTreeToScreen, 300); // Đợi layout ổn định hoàn toàn rồi mới căn chỉnh
         }, 200);
+
+        // Cập nhật tiêu đề trang dựa trên tên tệp
+        const treeName = currentTreeFile.replace('data/', '').replace('.json', '').replace(/_/g, ' ');
+        document.querySelector('.tree-header h2').textContent = `Phả Đồ ${treeName}`;
     }
 
     function renderNode(member, level = 1) {
@@ -236,7 +247,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (treeW < 100 || treeH < 100) return;
 
         // Tìm ô Cụ Tổ (Đời 1) để làm tiêu điểm
-        const rootCard = treeContainer.querySelector('.member-card[data-gen="1"]');
+        let rootCard = treeContainer.querySelector('.member-card[data-gen="1"]');
         
         const padding = 100;
         const scaleW = (wrapperW - padding) / treeW;
@@ -253,7 +264,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         panzoomInstance.zoom(finalScale, { animate: false });
         
         // Đo đạc thực tế sau khi đã zoom
-        const rootCard = treeContainer.querySelector('.member-card[data-gen="1"]');
+        rootCard = treeContainer.querySelector('.member-card[data-gen="1"]');
         const wrapperRect = treeCanvasWrapper.getBoundingClientRect();
         
         if (rootCard) {
@@ -915,7 +926,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     const imported = parseCSV(ev.target.result);
                     if (imported.length > 0) {
                         saveMembers(imported);
-                        loadTree(imported); // Truyền trực tiếp dữ liệu vừa nhập
+                        loadTree(imported); 
                         alert(`Nhập thành công ${imported.length} thành viên từ CSV!`);
                     } else {
                         alert('Không tìm thấy dữ liệu hợp lệ trong file CSV.');
@@ -928,6 +939,172 @@ document.addEventListener("DOMContentLoaded", async () => {
         };
         input.click();
     });
+
+    // --- 11. TREE MANAGEMENT (MULTI-TREE) ---
+    const treeManagerModal = document.getElementById('tree-manager-modal');
+    const openTreeManagerBtn = document.getElementById('manage-trees-btn');
+    const closeTreeManagerBtn = document.getElementById('close-tree-manager');
+    const treeItemList = document.getElementById('tree-item-list');
+    const treeListLoading = document.getElementById('tree-list-loading');
+    const createTreeBtn = document.getElementById('create-tree-btn');
+    const newTreeNameInput = document.getElementById('new-tree-name');
+
+    if (openTreeManagerBtn) {
+        openTreeManagerBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            treeManagerModal.classList.add('active');
+            loadTreeList();
+        });
+    }
+
+    if (closeTreeManagerBtn) {
+        closeTreeManagerBtn.addEventListener('click', () => {
+            treeManagerModal.classList.remove('active');
+        });
+    }
+
+    async function loadTreeList() {
+        if (!treeListLoading) return;
+        treeListLoading.style.display = 'block';
+        treeItemList.innerHTML = '';
+        try {
+            const res = await fetch('/api/list-trees');
+            const result = await res.json();
+            treeListLoading.style.display = 'none';
+
+            if (result.success) {
+                result.trees.forEach(tree => {
+                    const li = document.createElement('li');
+                    li.style.cssText = `
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 12px;
+                        margin-bottom: 8px;
+                        border-radius: 10px;
+                        border: 1px solid ${currentTreeFile === tree.path ? 'var(--primary-light)' : '#eee'};
+                        background: ${currentTreeFile === tree.path ? 'rgba(201,147,59,0.05)' : 'white'};
+                        transition: all 0.2s ease;
+                    `;
+                    
+                    const name = tree.name.replace('.json', '').replace(/_/g, ' ').toUpperCase();
+                    const isActive = currentTreeFile === tree.path;
+
+                    li.innerHTML = `
+                        <div style="flex: 1; cursor: pointer;" class="tree-select-item" data-path="${tree.path}">
+                            <div style="font-weight: 700; font-size: 14px; color: ${isActive ? 'var(--primary)' : 'var(--text-main)'}">
+                                ${isActive ? '<i class="ph-fill ph-check-circle"></i> ' : ''}${name}
+                            </div>
+                            <div style="font-size: 10px; color: #999; margin-top: 2px;">Tệp: ${tree.name} (${(tree.size / 1024).toFixed(1)} KB)</div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="action-btn delete-tree-btn" data-path="${tree.path}" data-sha="${tree.sha}" title="Xóa phả đồ" style="color: #ff4d4d; border: none; background: none; cursor: pointer; padding: 5px;">
+                                <i class="ph-bold ph-trash" style="font-size: 18px;"></i>
+                            </button>
+                        </div>
+                    `;
+                    treeItemList.appendChild(li);
+                });
+
+                // Xử lý chọn cây
+                treeItemList.querySelectorAll('.tree-select-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const path = el.getAttribute('data-path');
+                        if (path !== currentTreeFile) {
+                            currentTreeFile = path;
+                            localStorage.setItem('current-tree-file', path);
+                            treeManagerModal.classList.remove('active');
+                            
+                            const newUrl = new URL(window.location.href);
+                            newUrl.searchParams.set('tree', path);
+                            window.history.pushState({}, '', newUrl);
+                            
+                            loadTree();
+                        }
+                    });
+                });
+
+                // Xử lý xóa cây
+                treeItemList.querySelectorAll('.delete-tree-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const path = btn.getAttribute('data-path');
+                        const sha = btn.getAttribute('data-sha');
+                        
+                        if (path === 'data/members.json') {
+                            alert('Không thể xóa phả đồ mặc định!');
+                            return;
+                        }
+                        
+                        if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn phả đồ "${path}"? \nThao tác này không thể hoàn tác!`)) {
+                            const res = await fetch('/api/delete-tree', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ filePath: path, sha: sha })
+                            });
+                            const delResult = await res.json();
+                            if (delResult.success) {
+                                if (currentTreeFile === path) {
+                                    currentTreeFile = 'data/members.json';
+                                    localStorage.setItem('current-tree-file', currentTreeFile);
+                                }
+                                loadTreeList();
+                                loadTree();
+                            } else {
+                                alert('Lỗi: ' + delResult.message);
+                            }
+                        }
+                    });
+                });
+            }
+        } catch (error) {
+            treeListLoading.innerHTML = 'Lỗi khi tải danh sách: ' + error.message;
+        }
+    }
+
+    if (createTreeBtn) {
+        createTreeBtn.addEventListener('click', async () => {
+            let name = newTreeNameInput.value.trim();
+            if (!name) return alert('Vui lòng nhập tên dòng họ!');
+            
+            // Chuẩn hóa tên tệp
+            const fileName = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+            const filePath = `data/${fileName}.json`;
+
+            createTreeBtn.disabled = true;
+            createTreeBtn.innerHTML = '<i class="ph ph-spinner-gap animate-spin"></i>';
+
+            try {
+                const res = await fetch('/api/save-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filePath: filePath,
+                        data: [] // Dữ liệu trống cho dòng họ mới
+                    })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    newTreeNameInput.value = '';
+                    currentTreeFile = filePath;
+                    localStorage.setItem('current-tree-file', filePath);
+                    treeManagerModal.classList.remove('active');
+                    
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('tree', filePath);
+                    window.history.pushState({}, '', newUrl);
+                    
+                    loadTree();
+                    alert(`Đã tạo thành công dòng họ mới: ${name.toUpperCase()}`);
+                }
+            } catch (error) {
+                alert('Lỗi khi tạo: ' + error.message);
+            } finally {
+                createTreeBtn.disabled = false;
+                createTreeBtn.innerHTML = '<i class="ph-bold ph-plus"></i> Tạo mới';
+            }
+        });
+    }
 
     // --- START ---
     if (document.getElementById('gen-axis')) {

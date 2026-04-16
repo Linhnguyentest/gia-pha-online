@@ -73,6 +73,12 @@
 
             <ul class="nav-links bottom-links">
                 <li>
+                    <a href="#" id="manage-trees-btn" title="Quản lý danh sách các dòng họ">
+                        <i class="ph ph-stack"></i>
+                        <span class="link-name">Quản lý phả đồ</span>
+                    </a>
+                </li>
+                <li>
                     <a href="#" id="save-online-btn" title="Lưu thay đổi lên Web (GitHub)" style="color:var(--primary); font-weight:600;">
                         <i class="ph-fill ph-cloud-arrow-up"></i>
                         <span class="link-name">Lưu lên Web</span>
@@ -343,7 +349,34 @@
         </div>
     </div>
 
-    <!-- App scripts -->
-    <script src="assets/app.js"></script>
+        <!-- Tree Management Modal -->
+        <div class="modal-overlay" id="tree-manager-modal">
+            <div class="modal-content glass-card manage-modal">
+                <div class="modal-header">
+                    <h3><i class="ph-fill ph-stack"></i> Quản lý danh sách Phả đồ</h3>
+                    <button class="close-modal" id="close-tree-manager"><i class="ph-bold ph-x"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="create-tree-section">
+                        <div class="input-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <input type="text" id="new-tree-name" placeholder="Tên dòng họ mới (vd: Ho_Nguyen)" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--primary-light);">
+                            <button class="primary-btn" id="create-tree-btn"><i class="ph-bold ph-plus"></i> Tạo mới</button>
+                        </div>
+                        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 20px;">Tên tệp sẽ tự động có đuôi .json. Chỉ dùng chữ, số và dấu gạch dưới.</p>
+                    </div>
+                    <div class="tree-list-wrapper" style="max-height: 300px; overflow-y: auto;">
+                        <div id="tree-list-loading" style="text-align: center; padding: 20px; color: var(--text-muted);">
+                            <i class="ph ph-spinner-gap animate-spin"></i> Đang tải danh sách...
+                        </div>
+                        <ul class="tree-item-list" id="tree-item-list" style="list-style: none; padding: 0;">
+                            <!-- Populated dynamically -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- App scripts -->
+        <script src="assets/app.js"></script>
 </body>
 </html>
